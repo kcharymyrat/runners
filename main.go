@@ -1,21 +1,23 @@
 package main
 
-// import (
-// 	"log"
-// 	"runners-postgresql/config"
-// 	"runners-postgresql/server"
-// 	_ "github.com/lib/pq"
-// )
-// func main() {
-// 	log.Println("Starting Runners App")
+import (
+	"log"
+	"runners/config"
+	"runners/server"
 
-// 	log.Println("Initializing configuration")
-// 	config := config.InitConfig("runners")
+	_ "github.com/lib/pq"
+)
 
-// 	log.Println("Initializing database")
-// 	dbHandler := server.InitDatabase(config)
+func main() {
+	log.Println("Starting Runners App")
 
-// 	log.Println("Initializing HTTP server")
-// 	httpServer := server.InitHttpServer(config, dbHandler)
-// 	httpServer.Start()
-// }
+	log.Println("Initializing configuration")
+	config := config.InitConfig("runners.toml")
+
+	log.Println("Initializing database")
+	dbHandler := server.InitDatabase(config)
+
+	log.Println("Initializing HTTP server")
+	httpServer := server.InitHttpServer(config, dbHandler)
+	httpServer.Start()
+}

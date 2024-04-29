@@ -6,12 +6,17 @@ import (
 	"log"
 	"net/http"
 	"runners/models"
+	"runners/services"
 
 	"github.com/gin-gonic/gin"
 )
 
 type ResultsController struct {
 	resultsService *services.ResultsService
+}
+
+func NewResultsController(resultsService *services.ResultsService) *ResultsController {
+	return &ResultsController{resultsService: resultsService}
 }
 
 func (rh ResultsController) CreateResult(ctx *gin.Context) {

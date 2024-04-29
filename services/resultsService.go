@@ -3,6 +3,7 @@ package services
 import (
 	"net/http"
 	"runners/models"
+	"runners/repositories"
 	"time"
 )
 
@@ -72,7 +73,7 @@ func (rs ResultsService) CreateResult(result *models.Result) (*models.Result, *m
 		return nil, resErr
 	}
 
-	runner, resErr := rs.resultsRepository.GetRunner(result.RunnerID)
+	runner, resErr := rs.runnersRepository.GetRunner(result.RunnerID)
 	if resErr != nil {
 		return nil, resErr
 	}
@@ -87,7 +88,7 @@ func (rs ResultsService) CreateResult(result *models.Result) (*models.Result, *m
 	if runner.PersonalBest == "" {
 		runner.PersonalBest = result.RaceResult
 	} else {
-		personalBest, err := parseRaceResult(runner.PersonBest)
+		personalBest, err := parseRaceResult(runner.PersonalBest)
 		if err != nil {
 			return nil, &models.ResponseError{
 				Message: "Failed to parse personal best",
@@ -114,7 +115,7 @@ func (rs ResultsService) CreateResult(result *models.Result) (*models.Result, *m
 			}
 
 			if raceResult < seasonBest {
-				runner.seasonBest = result.RaceResult
+				runner.SeasonBest = result.RaceResult
 			}
 		}
 	}
@@ -135,6 +136,14 @@ func (rs ResultsService) DeleteResult(resultId string) *models.ResponseError {
 		}
 	}
 
+	err := repositories.BeginTransaction(rs.runnersRepository, rs.resultsRepository)
+	if err != nil {
+		return &models.ResponseError{
+			Message: "Failed to start transaction",
+			Status:  http.StatusBadRequest,
+		}
+	}
+
 	result, resErr := rs.resultsRepository.DeleteResult(resultId)
 	if resErr != nil {
 		return resErr
@@ -142,6 +151,7 @@ func (rs ResultsService) DeleteResult(resultId string) *models.ResponseError {
 
 	runner, resErr := rs.runnersRepository.GetRunner(result.RunnerID)
 	if resErr != nil {
+		repositories.RollbackTransaction(rs.runnersRepository, rs.resultsRepository)
 		return resErr
 	}
 
@@ -150,6 +160,7 @@ func (rs ResultsService) DeleteResult(resultId string) *models.ResponseError {
 	if runner.PersonalBest == result.RaceResult {
 		personalBest, responseErr := rs.resultsRepository.GetPersonalBestResults(result.RunnerID)
 		if responseErr != nil {
+			repositories.RollbackTransaction(rs.runnersRepository, rs.resultsRepository)
 			return responseErr
 		}
 		runner.PersonalBest = personalBest
@@ -164,6 +175,7 @@ func (rs ResultsService) DeleteResult(resultId string) *models.ResponseError {
 			GetSeasonBestResults(result.RunnerID,
 				result.Year)
 		if responseErr != nil {
+			repositories.RollbackTransaction(rs.runnersRepository, rs.resultsRepository)
 			return responseErr
 		}
 		runner.SeasonBest = seasonBest
@@ -171,8 +183,10 @@ func (rs ResultsService) DeleteResult(resultId string) *models.ResponseError {
 	resErr = rs.runnersRepository.
 		UpdateRunnerResults(runner)
 	if resErr != nil {
+		repositories.RollbackTransaction(rs.runnersRepository, rs.resultsRepository)
 		return resErr
 	}
+	repositories.CommitTransaction(rs.runnersRepository, rs.resultsRepository)
 	return nil
 }
 

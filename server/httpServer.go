@@ -3,6 +3,9 @@ package server
 import (
 	"database/sql"
 	"log"
+	"runners/controllers"
+	"runners/repositories"
+	"runners/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -11,8 +14,8 @@ import (
 type HttpServer struct {
 	config            *viper.Viper
 	router            *gin.Engine
-	runnersController *controllers.RunnersController
-	resultsContoller  *controllers.RessultsController
+	runnersController *controllers.RunnersContoller
+	resultsContoller  *controllers.ResultsController
 }
 
 func InitHttpServer(config *viper.Viper, dbHandler *sql.DB) HttpServer {
