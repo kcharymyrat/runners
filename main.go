@@ -12,7 +12,7 @@ func main() {
 	log.Println("Starting Runners App")
 
 	log.Println("Initializing configuration")
-	config := config.InitConfig("runners.toml")
+	config := config.InitConfig("config_runners.toml")
 
 	log.Println("Initializing database")
 	dbHandler := server.InitDatabase(config)

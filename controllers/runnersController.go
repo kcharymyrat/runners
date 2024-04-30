@@ -11,15 +11,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	ROLE_ADMIN  = "admin"
+	ROLE_RUNNER = "runner"
+)
+
 type RunnersContoller struct {
-	runnersServive *services.RunnersService
+	runnersService *services.RunnersService
+	usersService   *services.UsersService
 }
 
-func NewRunnersController(runnersService *services.RunnersService) *RunnersContoller {
-	return &RunnersContoller{runnersServive: runnersService}
+func NewRunnersController(runnersService *services.RunnersService, usersService *services.UsersService) *RunnersContoller {
+	return &RunnersContoller{runnersService: runnersService, usersService: usersService}
 }
 
 func (rh RunnersContoller) CreateRunner(ctx *gin.Context) {
+
+	// Authentication and Authorization
+	accessToken := ctx.Request.Header.Get("Token")
+	auth, resErr := rh.usersService.AuthorizeUser(accessToken, []string{ROLE_ADMIN})
+	if resErr != nil {
+		ctx.JSON(resErr.Status, resErr)
+		return
+	}
+	if !auth {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		log.Println("Error while reading create runner request body", err)
@@ -35,7 +54,7 @@ func (rh RunnersContoller) CreateRunner(ctx *gin.Context) {
 		return
 	}
 
-	response, responseErr := rh.runnersServive.CreateRunner(&runner)
+	response, responseErr := rh.runnersService.CreateRunner(&runner)
 	if responseErr != nil {
 		ctx.AbortWithStatusJSON(responseErr.Status, responseErr)
 		return
@@ -44,6 +63,19 @@ func (rh RunnersContoller) CreateRunner(ctx *gin.Context) {
 }
 
 func (rh RunnersContoller) UpdateRunner(ctx *gin.Context) {
+
+	// Authentication and Authorization
+	accessToken := ctx.Request.Header.Get("Token")
+	auth, resErr := rh.usersService.AuthorizeUser(accessToken, []string{ROLE_ADMIN})
+	if resErr != nil {
+		ctx.JSON(resErr.Status, resErr)
+		return
+	}
+	if !auth {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		log.Println("Error while reading update runner request body", err)
@@ -58,7 +90,7 @@ func (rh RunnersContoller) UpdateRunner(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 	}
 
-	responseErr := rh.runnersServive.UpdateRunner(&runner)
+	responseErr := rh.runnersService.UpdateRunner(&runner)
 	if responseErr != nil {
 		ctx.AbortWithStatusJSON(responseErr.Status, responseErr)
 		return
@@ -67,8 +99,21 @@ func (rh RunnersContoller) UpdateRunner(ctx *gin.Context) {
 }
 
 func (rh RunnersContoller) DeleteRunner(ctx *gin.Context) {
+
+	// Authentication and Authorization
+	accessToken := ctx.Request.Header.Get("Token")
+	auth, resErr := rh.usersService.AuthorizeUser(accessToken, []string{ROLE_ADMIN})
+	if resErr != nil {
+		ctx.JSON(resErr.Status, resErr)
+		return
+	}
+	if !auth {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+
 	runnerId := ctx.Param("id")
-	responseErr := rh.runnersServive.DeleteRunner(runnerId)
+	responseErr := rh.runnersService.DeleteRunner(runnerId)
 	if responseErr != nil {
 		ctx.AbortWithStatusJSON(responseErr.Status, responseErr)
 		return
@@ -77,8 +122,21 @@ func (rh RunnersContoller) DeleteRunner(ctx *gin.Context) {
 }
 
 func (rh RunnersContoller) GetRunner(ctx *gin.Context) {
+
+	// Authentication and Authorization
+	accessToken := ctx.Request.Header.Get("Token")
+	auth, resErr := rh.usersService.AuthorizeUser(accessToken, []string{ROLE_ADMIN, ROLE_RUNNER})
+	if resErr != nil {
+		ctx.JSON(resErr.Status, resErr)
+		return
+	}
+	if !auth {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+
 	runnerId := ctx.Param("id")
-	response, responseErr := rh.runnersServive.GetRunner(runnerId)
+	response, responseErr := rh.runnersService.GetRunner(runnerId)
 	if responseErr != nil {
 		ctx.JSON(responseErr.Status, responseErr)
 		return
@@ -87,11 +145,24 @@ func (rh RunnersContoller) GetRunner(ctx *gin.Context) {
 }
 
 func (rh RunnersContoller) GetRunnersBatch(ctx *gin.Context) {
+
+	// Authentication and Authorization
+	accessToken := ctx.Request.Header.Get("Token")
+	auth, resErr := rh.usersService.AuthorizeUser(accessToken, []string{ROLE_ADMIN, ROLE_RUNNER})
+	if resErr != nil {
+		ctx.JSON(resErr.Status, resErr)
+		return
+	}
+	if !auth {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+
 	params := ctx.Request.URL.Query()
 	country := params.Get("country")
 	year := params.Get("year")
 
-	response, responseErr := rh.runnersServive.GetRunnersBatch(country, year)
+	response, responseErr := rh.runnersService.GetRunnersBatch(country, year)
 	if responseErr != nil {
 		ctx.JSON(responseErr.Status, responseErr)
 		return
